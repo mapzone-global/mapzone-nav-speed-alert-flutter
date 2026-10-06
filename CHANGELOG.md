@@ -2,8 +2,7 @@
 
 Wraps the MapZone Alert View SDK **1.0.2**: Android
 `com.github.mapzone-global:mapzone-alert-view-android:1.0.2` (JitPack) and iOS
-`MapZoneAlertView` `1.0.2` (CocoaPods). The plugin version follows the native
-SDK version.
+`MapZoneAlertView` `1.0.2` (CocoaPods).
 
 * `NavSpeedAlert.instance`: `configure`, `start`, `onLocation`, `reset`,
   `setSegmentUrl`, `setExtraHeaders`, `setExtraBodyFields`,

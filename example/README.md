@@ -4,26 +4,34 @@ A route-based navigation app: search a destination, build the route, then drive
 it (simulated or with real GPS) while the plugin shows speed-limit, camera, toll
 and restriction signs and plays voice alerts.
 
-```
-pick destination → buildRoute → onRouteBuilt(route)
-Start            → startNavigation + NavSpeedAlert.start(route polyline)
-progress tick    → NavSpeedAlert.onLocation(snapped position)
-reroute          → new route → NavSpeedAlert.start(new polyline)
-Stop / arrival   → NavSpeedAlert.reset()
-```
-
 ## Setup
+
+You need two sets of credentials:
+
+- **MapZone alert key** (`apiKeyId`, `apiKey`, `vehicleId`) registered for the
+  application id you will run — contact [MapZone](https://zalo.me/3189066936017422854).
+- **VietMap API key** for the map, routing and search.
 
 Credentials are never committed. Provide them locally:
 
-1. **Dart** — copy `env.example.json` to `env.json` and fill in the alert
-   service credentials and your VietMap key.
+1. **Dart** — copy `lib/env.example.dart` to `lib/env.dart` (git-ignored) and
+   fill in `baseUrl`, `apiKeyId`, `apiKey`, `vehicleId` and `vietmapApiKey`.
+
+   ```sh
+   cp lib/env.example.dart lib/env.dart
+   ```
+
 2. **iOS** — copy `ios/Flutter/Secrets.xcconfig.example` to
-   `ios/Flutter/Secrets.xcconfig`; set `APP_BUNDLE_ID` to the bundle id
-   registered for your alert API key and `VIETMAP_API_KEY` (the navigation SDK
-   reads it from `Info.plist`). Then `cd ios && pod install`.
-3. **Android** — add `appId=<registered application id>` to
-   `android/local.properties`.
+   `ios/Flutter/Secrets.xcconfig` (git-ignored); set `APP_BUNDLE_ID` to the
+   bundle id registered for your alert key and `VIETMAP_API_KEY` (the
+   navigation SDK reads it from `Info.plist`). Then:
+
+   ```sh
+   cd ios && pod install
+   ```
+
+3. **Android** — set `applicationId` in `android/app/build.gradle.kts` to the
+   application id registered for your alert key.
 
 The alert service authenticates by the exact application id, so steps 2–3 are
 required for alerts to load.
@@ -31,7 +39,7 @@ required for alerts to load.
 ## Run
 
 ```sh
-flutter run --dart-define-from-file=env.json
+flutter run
 ```
 
 Settings (gear button): vehicle profile, simulation on/off and simulation speed
