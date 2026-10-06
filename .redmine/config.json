@@ -1,0 +1,6 @@
+{
+  "project_url": "http://redmine.vm.local/projects/mapzone-spd-sdk",
+  "default_tracker": "Task",
+  "parent_issue_id": 12723,
+  "role": "sdk"
+}

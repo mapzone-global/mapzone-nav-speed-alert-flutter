@@ -1,0 +1,95 @@
+PODS:
+  - audioplayers_darwin (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - Flutter (1.0.0)
+  - geolocator_apple (1.2.0):
+    - Flutter
+    - FlutterMacOS
+  - mapzone_nav_speed_alert (1.0.2):
+    - Flutter
+    - MapZoneAlertView (= 1.0.2)
+  - MapZoneAlertView (1.0.2)
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - permission_handler_apple (9.4.8):
+    - Flutter
+  - VietMap (2.9.4)
+  - vietmap_flutter_navigation (0.0.3):
+    - Flutter
+    - VietMapCoreNavigation (= 3.1.0)
+    - VietMapNavigation (= 3.3.0)
+  - VietMapCoreNavigation (3.1.0):
+    - VietMapDirections.swift (~> 2.0.1)
+    - VietMapTurf (~> 1.0.2)
+  - VietMapDirections.swift (2.0.1):
+    - VietMapPolyline (~> 1.0.4)
+  - VietMapNavigation (3.3.0):
+    - VietMap (~> 2.9.4)
+    - VietMapCoreNavigation (= 3.1.0)
+    - VietMapSolar (~> 1.0.3)
+    - VietMapSpeech (~> 2.0.1)
+  - VietMapPolyline (1.0.6)
+  - VietMapSolar (1.0.3)
+  - VietMapSpeech (2.0.1)
+  - VietMapTurf (1.0.2)
+
+DEPENDENCIES:
+  - audioplayers_darwin (from `.symlinks/plugins/audioplayers_darwin/darwin`)
+  - Flutter (from `Flutter`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
+  - mapzone_nav_speed_alert (from `.symlinks/plugins/mapzone_nav_speed_alert/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - vietmap_flutter_navigation (from `.symlinks/plugins/vietmap_flutter_navigation/ios`)
+
+SPEC REPOS:
+  trunk:
+    - MapZoneAlertView
+    - VietMap
+    - VietMapCoreNavigation
+    - VietMapDirections.swift
+    - VietMapNavigation
+    - VietMapPolyline
+    - VietMapSolar
+    - VietMapSpeech
+    - VietMapTurf
+
+EXTERNAL SOURCES:
+  audioplayers_darwin:
+    :path: ".symlinks/plugins/audioplayers_darwin/darwin"
+  Flutter:
+    :path: Flutter
+  geolocator_apple:
+    :path: ".symlinks/plugins/geolocator_apple/darwin"
+  mapzone_nav_speed_alert:
+    :path: ".symlinks/plugins/mapzone_nav_speed_alert/ios"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  permission_handler_apple:
+    :path: ".symlinks/plugins/permission_handler_apple/ios"
+  vietmap_flutter_navigation:
+    :path: ".symlinks/plugins/vietmap_flutter_navigation/ios"
+
+SPEC CHECKSUMS:
+  audioplayers_darwin: 835ced6edd4c9fc8ebb0a7cc9e294a91d99917d5
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
+  mapzone_nav_speed_alert: 5745ebd91e1d345552f47f3b6270cb034db11dbd
+  MapZoneAlertView: be0ebd7dd915933cab8f8b20f3c1deadc807cbc1
+  path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
+  permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
+  VietMap: 12d51550ae540231b40cec59516002213bb46dcc
+  vietmap_flutter_navigation: 2cfa0988a0ab7cd28d6bee8b827be6c318e67f94
+  VietMapCoreNavigation: a5a6e2bed913c321abafca37286647b5b1dc52ed
+  VietMapDirections.swift: d622c98e381281b39f7dcac2b0445ee2f6e1690e
+  VietMapNavigation: dcdbbf438fc0b1d968679db9bf0d7bc913fb39de
+  VietMapPolyline: e599c6d0a0a4b3672957881e2f666ba2141a4e83
+  VietMapSolar: ef412e72efb00b700f2223e701cae66b446bf17b
+  VietMapSpeech: fe5bd0c2ed2757aa7ac59337d74480e25e5a36ed
+  VietMapTurf: 323ba165ae0aeb0fb6622d427e5341c14f4afada
+
+PODFILE CHECKSUM: 79b07c43ad0e178772b090e847ff9e551effb605
+
+COCOAPODS: 1.16.2
