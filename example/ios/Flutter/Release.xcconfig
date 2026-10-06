@@ -1,0 +1,7 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Generated.xcconfig"
+
+// Defaults; override in Secrets.xcconfig (git-ignored, see Secrets.xcconfig.example).
+APP_BUNDLE_ID = vietmap.prod.test
+VIETMAP_API_KEY =
+#include? "Secrets.xcconfig"

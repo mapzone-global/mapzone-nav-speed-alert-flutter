@@ -1,0 +1,33 @@
+name: mapzone_nav_speed_alert_example
+description: "Route-based navigation demo for the mapzone_nav_speed_alert plugin."
+publish_to: 'none'
+version: 1.0.2+1
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  mapzone_nav_speed_alert:
+    # The example is bundled with the plugin, so it uses the parent directory.
+    path: ../
+
+  provider: ^6.1.2
+  audioplayers: ^6.1.0
+  vietmap_flutter_navigation: 4.2.1-pre.5
+  http: ^1.2.0
+  permission_handler: ^11.3.1
+  geolocator: ^13.0.2
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/markers/
