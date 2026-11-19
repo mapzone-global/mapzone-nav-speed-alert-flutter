@@ -1,6 +1,6 @@
 ## 2.0.0
 
-Native SDK 2.0.0: signed-in accounts. See the README section *Migrating from
+Native SDK 2.0.1: signed-in accounts. See the README section *Migrating from
 1.0.0 to 2.0.0*.
 
 **Breaking**
