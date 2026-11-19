@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -49,20 +51,40 @@ class MethodChannelNavSpeedAlert extends NavSpeedAlertPlatform {
   ).receiveBroadcastStream().map((e) => decode(e as Map<Object?, Object?>));
 
   @override
-  Future<void> configure(AlertViewConfig config) =>
-      methodChannel.invokeMethod<void>('configure', config.toMap());
+  Future<void> configure(AlertViewConfig config) async {
+    final Map<String, Object?> payload;
+    try {
+      payload = config.toMap();
+    } on JsonUnsupportedObjectError catch (e) {
+      // Same contract as a rejection by the SDK: nothing is applied.
+      throw PlatformException(
+        code: 'INVALID_CONFIGURATION',
+        message:
+            'metadata is not JSON-encodable: ${e.unsupportedObject.runtimeType}',
+      );
+    }
+    await methodChannel.invokeMethod<void>('configure', payload);
+  }
+
+  @override
+  Future<ResultEvent> logout() async {
+    final result = await methodChannel.invokeMapMethod<Object?, Object?>(
+      'logout',
+    );
+    return ResultEvent.fromMap(result ?? const {});
+  }
 
   @override
   Future<void> setSegmentUrl(String url) =>
       methodChannel.invokeMethod<void>('setSegmentUrl', {'url': url});
 
   @override
-  Future<String?> setExtraHeaders(Map<String, String> headers) =>
-      methodChannel.invokeMethod<String>('setExtraHeaders', {'map': headers});
+  Future<void> setExtraHeaders(Map<String, String> headers) =>
+      methodChannel.invokeMethod<void>('setExtraHeaders', {'map': headers});
 
   @override
-  Future<String?> setExtraBodyFields(Map<String, String> fields) =>
-      methodChannel.invokeMethod<String>('setExtraBodyFields', {'map': fields});
+  Future<void> setExtraBodyFields(Map<String, String> fields) =>
+      methodChannel.invokeMethod<void>('setExtraBodyFields', {'map': fields});
 
   @override
   Future<void> start(String routePolyline) =>

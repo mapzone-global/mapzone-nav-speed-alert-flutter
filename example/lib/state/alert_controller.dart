@@ -1,14 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:mapzone_nav_speed_alert/mapzone_nav_speed_alert.dart';
 
 import '../env.dart';
 import '../models/vehicle_profile.dart';
 import '../voice_queue.dart';
 
-/// State holder for [NavSpeedAlert]: configuration, the latest signs, route
-/// lifecycle and voice settings.
+/// State holder for [NavSpeedAlert]: configuration and sign-in, the latest
+/// signs, route lifecycle and voice settings.
 class AlertController extends ChangeNotifier {
   final NavSpeedAlert _engine = NavSpeedAlert.instance;
   final VoiceQueue _voiceQueue = VoiceQueue();
@@ -30,6 +31,18 @@ class AlertController extends ChangeNotifier {
 
   /// Called when the engine lost the route; the screen builds a new one.
   void Function(RerouteEvent)? onReroute;
+
+  /// Called when the SDK reports the identity in use on another device
+  /// ([AlertViewError.sessionMoved]); the controller has already logged out.
+  void Function()? onSessionMoved;
+
+  /// Who is signed in (or was last). Starts as [Env.identity]; the settings
+  /// dialog can switch it for this run — it is not persisted.
+  String identity = Env.identity;
+
+  /// Whether [identity] is signed in on this device. False before a
+  /// successful configure and after [logout].
+  bool signedIn = false;
 
   final Set<VoiceAlertType> mutedTypes = <VoiceAlertType>{};
   VoiceMode voiceMode = VoiceMode.full;
@@ -61,10 +74,18 @@ class AlertController extends ChangeNotifier {
       )
       ..add(
         _engine.onResult.listen((e) {
-          debugPrint('[alert] segment: ok=${e.success} code=${e.errorCode}');
+          debugPrint('[alert] result: ok=${e.success} code=${e.errorCode}');
           if (e.success) {
             loadedSegments++;
-          } else {
+          } else if (e.errorCode == AlertViewError.sessionMoved) {
+            // The server already closed the session, so this device is signed
+            // out whatever logout reports; logging out completes the local
+            // side, then the UI asks the user to sign in again.
+            signedIn = false;
+            unawaited(logout());
+            onSessionMoved?.call();
+          } else if (e.errorCode != AlertViewError.notLoggedIn || signedIn) {
+            // "Nobody signed in" right after a sign-out is expected.
             lastError = e;
           }
           notifyListeners();
@@ -85,11 +106,14 @@ class AlertController extends ChangeNotifier {
   Future<void> _configure() async {
     if (!Env.hasAlertCredentials) return;
     try {
-      await _engine.configure(Env.configFor(vehicle));
+      await _engine.configure(Env.configFor(vehicle, identity: identity));
+      signedIn = true;
       configureError = null;
-    } catch (e) {
-      configureError = '$e';
-      debugPrint('[alert] configure failed: $e');
+    } on PlatformException catch (e) {
+      // INVALID_CONFIGURATION (e.g. an empty identity) or CONFIGURE_FAILED:
+      // shown on screen, fixable from the settings dialog.
+      configureError = e.message ?? e.code;
+      debugPrint('[alert] configure failed: ${e.code}');
     }
   }
 
@@ -136,12 +160,44 @@ class AlertController extends ChangeNotifier {
     );
   }
 
-  /// Re-configure for another vehicle. Takes effect from the next [startRoute].
-  Future<void> applyVehicle(VehicleProfile v) async {
-    if (v == vehicle) return;
+  /// Sign [newIdentity] in with vehicle [v], or re-configure the vehicle for
+  /// the identity already signed in. Takes effect from the next [startRoute].
+  ///
+  /// Always configures, even with unchanged values: `configure` is what lifts
+  /// a stop such as 2005 / 2007 / 4001 once its cause is fixed.
+  ///
+  /// Throws [PlatformException] when the SDK rejects an input; the previous
+  /// configuration then stays in effect, and so does this controller's state.
+  Future<void> applySettings(VehicleProfile v, String newIdentity) async {
+    await _engine.configure(Env.configFor(v, identity: newIdentity));
     vehicle = v;
-    await _configure();
+    identity = newIdentity;
+    signedIn = true;
+    configureError = null;
     notifyListeners();
+  }
+
+  /// Sign the identity out of this device. Route data already loaded keeps
+  /// alerting. When the request fails (e.g. offline) the SDK keeps the
+  /// identity signed in, so the result tells whether to retry later.
+  Future<ResultEvent> logout() async {
+    final ResultEvent result;
+    try {
+      result = await _engine.logout();
+    } on PlatformException catch (e) {
+      // Channel failure (e.g. the engine is going away): report it like a
+      // failed request so callers never see an unhandled error.
+      return ResultEvent(
+        success: false,
+        errorCode: AlertViewError.bridgeFailed,
+        errorMessage: e.message ?? e.code,
+      );
+    }
+    if (result.success) {
+      signedIn = false;
+      notifyListeners();
+    }
+    return result;
   }
 
   // ── Voice ───────────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'mapzone_nav_speed_alert'
-  s.version          = '1.0.2'
+  s.version          = '2.0.0'
   s.summary          = 'Speed, camera, toll and road-restriction alerts along a route.'
   s.description      = <<-DESC
 Flutter plugin for the MapZone Alert View SDK: speed-limit, camera, toll and
@@ -16,7 +16,7 @@ road-restriction signs with voice along a route supplied by the host app.
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'MapZoneAlertView', '= 1.0.2'
+  s.dependency 'MapZoneAlertView', '= 2.0.1'
   s.platform = :ios, '13.0'
 
   # Flutter.framework does not contain a i386 slice.

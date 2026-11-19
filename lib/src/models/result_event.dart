@@ -1,10 +1,12 @@
 import 'map_read.dart';
 
-/// Outcome of fetching one route segment, from `NavSpeedAlert.onResult`.
+/// Outcome reported by the native engine: each segment fetch and each failed
+/// sign-in on `NavSpeedAlert.onResult`, and the result of
+/// `NavSpeedAlert.logout`.
 ///
-/// Error codes: `1001` point outside Vietnam, `1002` missing points, `1003`
-/// malformed polyline, `2001` device clock off by more than 10 s, `3003`
-/// vehicle type outside 1..9, `3004` no road matched, `5000` server error.
+/// Branch on [errorCode] (see `AlertViewError`); [errorMessage] is a short
+/// English sentence derived from the code alone, meant for logs and fallback
+/// UI. Whatever the code, route data already loaded keeps alerting.
 class ResultEvent {
   /// Creates an event.
   const ResultEvent({
@@ -20,10 +22,10 @@ class ResultEvent {
     errorMessage: m.text('errorMessage'),
   );
 
-  /// Whether the segment loaded.
+  /// Whether the segment loaded, or the identity was signed out.
   final bool success;
 
-  /// `0` on success, otherwise a service or transport error code.
+  /// `0` on success, otherwise an `AlertViewError` code.
   final int errorCode;
 
   /// Human-readable error, empty on success.
