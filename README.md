@@ -7,13 +7,12 @@ Your app signs the user in, supplies the route polyline and feeds GPS fixes;
 the plugin returns ready-to-draw sign images on every tick and plays voice
 alerts.
 
-> **Upgrading from 1.0.0?** 2.0.0 is a breaking release (native SDK 2.0.1,
-> signed-in accounts). See [Migrating from 1.0.0 to 2.0.0](#migrating-from-100-to-200).
+> **Upgrading from 1.0.0?** 2.0.0 is a breaking release (native SDK 2.0.1). See [Migrating from 1.0.0 to 2.0.0](#migrating-from-100-to-200).
 
 ```
 your navigation app                         mapzone_nav_speed_alert
 ───────────────────                         ──────────────────────
-user signed in ─ identity + vehicle ────────► configure()
+identity + vehicle                  ────────► configure()
 route built ──── polyline (precision 1e6) ──► start()
 GPS fix ~1 Hz ── lat/lng/bearing/speed ─────► onLocation()
                                               │
@@ -65,10 +64,6 @@ Keep `apiKey` out of source control (e.g. a git-ignored Dart file,
 dependencies:
   mapzone_nav_speed_alert: ^2.0.0
 ```
-
-The plugin pins the native SDK at **2.0.1**: Android
-`com.github.mapzone-global:mapzone-alert-view-android:2.0.1` (JitPack), iOS
-`MapZoneAlertView` `2.0.1` (CocoaPods).
 
 ### Android
 
@@ -129,8 +124,7 @@ Add `NSLocationAlwaysAndWhenInUseUsageDescription` and the `location` /
 
 ### Store privacy forms
 
-The native SDK attaches a per-device identifier to its requests, and positions
-travel with the signed-in identity. Declare *Device or other IDs* and *Precise
+Declare *Device or other IDs* and *Precise
 location*, linked to the user, for app functionality (Google Play Data safety /
 App Store privacy details). The iOS framework ships its own privacy manifest.
 
@@ -145,7 +139,7 @@ final alert = NavSpeedAlert.instance;
 
 try {
   await alert.configure(AlertViewConfig(
-    baseUrl: 'https://<gateway-from-mapzone>', // issued by MapZone; https:// only
+    baseUrl: 'https://driving.map.zone', // issued by MapZone; https:// only
     apiKeyId: 'your-api-key-id',           // from MapZone
     apiKey: 'your-api-key',                // from MapZone
     identity: signedInUser.phone,          // who is signed in on this device
@@ -162,8 +156,7 @@ try {
 
 Call `configure` **on every app launch** with the user already signed in, and
 on every sign-in: the SDK does not remember the identity across launches. Call
-it again to switch identity or vehicle. The sign-in itself runs in the
-background; its failures arrive on `onResult` (see
+it again to switch identity or vehicle. Its failures arrive on `onResult` (see
 [Sessions](#sessions-sign-in-and-sign-out)).
 
 #### Identity
@@ -339,8 +332,6 @@ returns `null` for a code the SDK does not offer.
 | `fixTimeMillis` | ms since epoch (UTC) | Defaults to now. |
 
 ## API reference
-
-All members are on `NavSpeedAlert.instance`.
 
 ### Methods
 
@@ -536,14 +527,6 @@ one of them with a prefix:
 ```dart
 import 'package:mapzone_nav_speed_alert/mapzone_nav_speed_alert.dart' as nav;
 ```
-
-## Example app
-
-[`example/`](example) is a complete navigation app (map, search, simulated or
-real driving) built on `vietmap_flutter_navigation`. See
-[example/README.md](example/README.md) for setup. The settings dialog holds the
-identity, sign-out and vehicle profile; a dialog asks to sign in again on
-`2006`.
 
 ## Migrating from 1.0.0 to 2.0.0
 
