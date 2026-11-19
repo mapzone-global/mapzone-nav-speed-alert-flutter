@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mapzone_nav_speed_alert/mapzone_nav_speed_alert.dart';
 import 'package:provider/provider.dart';
@@ -80,6 +81,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) => _primePermissions());
     final alert = context.read<AlertController>()
       ..onReroute = _onEngineReroute
+      ..onSessionMoved = _onSessionMoved
       ..addListener(_showSegmentError);
     _alert = alert;
     _options = MapOptions(
@@ -103,6 +105,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   void dispose() {
     _alert
       ..onReroute = null
+      ..onSessionMoved = null
       ..removeListener(_showSegmentError);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -235,6 +238,35 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     _buildRoute(LatLng(e.lat, e.lng));
   }
 
+  /// The identity was signed in on another device (2006). The controller has
+  /// logged out; tell the user and offer the settings dialog to sign in again.
+  /// Signing in again only follows a tap: configuring on our own would take
+  /// the session back, and two devices doing so sign each other out forever.
+  Future<void> _onSessionMoved() async {
+    if (!mounted) return;
+    final signIn = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đã đăng xuất'),
+        content: const Text(
+          'Tài khoản đang được dùng trên thiết bị khác. Đăng nhập lại để tiếp '
+          'tục tải dữ liệu cảnh báo (đăng nhập lại ngay có thể phải chờ 20 phút).',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Để sau'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Đăng nhập'),
+          ),
+        ],
+      ),
+    );
+    if (signIn == true && mounted) await _openSettings();
+  }
+
   void _showSegmentError() {
     final err = _alert.lastError;
     if (err == null) return;
@@ -255,6 +287,10 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     final configureError = _alert.configureError;
     if (configureError != null) {
       _snack('Không cấu hình được cảnh báo: $configureError');
+      return;
+    }
+    if (!_alert.signedIn) {
+      _snack('Chưa đăng nhập — mở Cài đặt để đăng nhập.');
       return;
     }
     if (!await _ensureLocationPermission()) return;
@@ -459,6 +495,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     final result = await showDialog<SettingsResult>(
       context: context,
       builder: (_) => SettingsDialog(
+        identity: _alert.identity,
+        signedIn: _alert.signedIn,
         vehicle: _alert.vehicle,
         simulate: _simulate,
         speedMultiplier: _speedMultiplier,
@@ -470,7 +508,22 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       _speedMultiplier = result.speedMultiplier;
     });
     _options.simulateRoute = result.simulate;
-    await _alert.applyVehicle(result.vehicle);
+
+    if (result.signOut) {
+      final outcome = await _alert.logout();
+      _snack(
+        outcome.success
+            ? 'Đã đăng xuất.'
+            : 'Chưa đăng xuất được (mã ${outcome.errorCode}). Thử lại sau.',
+      );
+      return;
+    }
+
+    try {
+      await _alert.applySettings(result.vehicle, result.identity);
+    } on PlatformException catch (e) {
+      _snack('Cấu hình bị từ chối: ${e.message ?? e.code}');
+    }
   }
 
   void _snack(String msg) {

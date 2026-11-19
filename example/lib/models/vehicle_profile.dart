@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:mapzone_nav_speed_alert/mapzone_nav_speed_alert.dart';
 
-/// Vehicle classes accepted by the alert service (`vehicleType` 1..9).
+/// The vehicle types the SDK offers, with their label and icon in this app.
 enum VehicleKind {
-  car(1, 'Ô tô', Icons.directions_car),
-  motorcycle(2, 'Xe máy', Icons.two_wheeler),
-  truck(3, 'Xe tải', Icons.local_shipping),
-  coach(4, 'Xe khách', Icons.airport_shuttle),
-  bus(5, 'Xe buýt', Icons.directions_bus),
-  taxi(6, 'Taxi', Icons.local_taxi),
-  bicycle(7, 'Xe đạp', Icons.directions_bike),
-  pedestrian(8, 'Đi bộ', Icons.directions_walk),
-  emergency(9, 'Xe ưu tiên', Icons.emergency);
+  car(AlertVehicleType.car, 'Ô tô', Icons.directions_car),
+  taxi(AlertVehicleType.taxi, 'Taxi', Icons.local_taxi),
+  bus(AlertVehicleType.bus, 'Xe buýt', Icons.directions_bus),
+  coach(AlertVehicleType.coach, 'Xe khách', Icons.airport_shuttle),
+  truck(AlertVehicleType.truck, 'Xe tải', Icons.local_shipping),
+  motorcycle(AlertVehicleType.motorcycle, 'Xe máy', Icons.two_wheeler);
 
-  const VehicleKind(this.code, this.label, this.icon);
+  const VehicleKind(this.sdkType, this.label, this.icon);
 
-  /// Code sent as `AlertViewConfig.vehicleType`.
-  final int code;
+  /// Sent as `AlertViewConfig.vehicleType`.
+  final AlertVehicleType sdkType;
   final String label;
   final IconData icon;
 }
@@ -26,20 +24,22 @@ class VehicleProfile {
   const VehicleProfile({
     this.type = VehicleKind.car,
     this.seats = 5,
-    this.weightKg = 1500,
+    this.weightTons = 1.5,
   });
 
   final VehicleKind type;
   final int seats;
-  final int weightKg;
+
+  /// Gross weight in tonnes, the unit the service reads.
+  final double weightTons;
 
   @override
   bool operator ==(Object other) =>
       other is VehicleProfile &&
       other.type == type &&
       other.seats == seats &&
-      other.weightKg == weightKg;
+      other.weightTons == weightTons;
 
   @override
-  int get hashCode => Object.hash(type, seats, weightKg);
+  int get hashCode => Object.hash(type, seats, weightTons);
 }

@@ -8,7 +8,7 @@ import UIKit
 /// Every event channel registers its native callback on the first Dart listen and
 /// removes it on cancel. For `voice` this is what keeps the native semantics: the
 /// built-in voice player stays active until a voice callback is set. (The native
-/// iOS SDK 1.0.2 renders restriction images whether or not a callback is set;
+/// iOS SDK renders restriction images whether or not a callback is set;
 /// they are simply not forwarded without a listener.)
 public class MapzoneNavSpeedAlertPlugin: NSObject, FlutterPlugin {
   private static let channelName = "mapzone_nav_speed_alert"
@@ -22,10 +22,6 @@ public class MapzoneNavSpeedAlertPlugin: NSObject, FlutterPlugin {
   // the plugin is registered on every engine, so teardown must only undo what
   // this instance did.
   private var started = false
-
-  // Calls that wait for the engine queue (a segment fetch may be in flight) must
-  // not block the platform thread.
-  private let blockingCalls = DispatchQueue(label: "com.mapzone.nav_speed_alert.calls")
 
   // Sign images are PNG-encoded off the main thread; a serial queue keeps tick order.
   private let encoder = DispatchQueue(label: "com.mapzone.nav_speed_alert.encoder")
@@ -109,9 +105,7 @@ public class MapzoneNavSpeedAlertPlugin: NSObject, FlutterPlugin {
     }, close: { [weak self] in self?.mgr.setVoiceCallback(nil) })
 
     stream(messenger, "result", open: { [weak self] emit in
-      self?.mgr.setResultCallback { ok, code, msg in
-        emit(["success": ok, "errorCode": code, "errorMessage": msg])
-      }
+      self?.mgr.setResultCallback { ok, code, msg in emit(resultMap(ok, code, msg)) }
     }, close: { [weak self] in self?.mgr.setResultCallback(nil) })
 
     stream(messenger, "reroute", open: { [weak self] emit in
@@ -140,7 +134,7 @@ public class MapzoneNavSpeedAlertPlugin: NSObject, FlutterPlugin {
   /// Required argument keys per method; a missing one is reported like Kotlin does.
   private static let requiredArgs: [String: [String]] = [
     "configure": [
-      "baseUrl", "apiKeyId", "apiKey", "vehicleId", "vehicleType", "seats", "weights",
+      "baseUrl", "apiKeyId", "apiKey", "identity", "vehicleType", "seats", "weightTons",
       "maxSnapMeters",
     ],
     "setSegmentUrl": ["url"],
@@ -164,19 +158,34 @@ public class MapzoneNavSpeedAlertPlugin: NSObject, FlutterPlugin {
     }
     switch call.method {
     case "configure":
-      mgr.configure(
-        baseUrl: args.string("baseUrl"),
-        apiKeyId: args.string("apiKeyId"),
-        apiKey: args.string("apiKey"),
-        vehicleId: args.string("vehicleId"),
-        vehicleType: args.int("vehicleType"),
-        seats: args.int("seats"),
-        weights: args.double("weights"),
-        maxSnapMeters: args.double("maxSnapMeters"))
-      result(nil)
+      // Unknown codes never reach the SDK, whose enum has no value for them.
+      let code = args.int("vehicleType")
+      guard let vehicleType = AlertVehicleType(rawValue: code) else {
+        result(
+          FlutterError(
+            code: Self.invalidConfiguration, message: "Unsupported vehicle type code \(code).",
+            details: nil))
+        return
+      }
+      // Identity and metadata are personal data: never logged. A rejection
+      // applied nothing: the previous configuration stays in effect.
+      Self.complete(
+        result,
+        mgr.configure(
+          baseUrl: args.string("baseUrl"),
+          apiKeyId: args.string("apiKeyId"),
+          apiKey: args.string("apiKey"),
+          identity: args.string("identity"),
+          vehicleType: vehicleType,
+          seats: args.int("seats"),
+          weights: args.double("weightTons"),
+          maxSnapMeters: args.double("maxSnapMeters"),
+          metadata: args["metadata"] as? String))
+    case "logout":
+      // The SDK completes on the main thread.
+      mgr.logout { ok, code, msg in result(resultMap(ok, code, msg)) }
     case "setSegmentUrl":
-      mgr.setSegmentUrl(args.string("url"))
-      result(nil)
+      Self.complete(result, mgr.setSegmentUrl(args.string("url")))
     case "setExtraHeaders", "setExtraBodyFields":
       // A malformed map must not silently clear the extras already set.
       guard let map = args["map"] as? [String: String] else {
@@ -185,11 +194,12 @@ public class MapzoneNavSpeedAlertPlugin: NSObject, FlutterPlugin {
             code: "INVALID_ARGUMENT", message: "'map' must be Map<String, String>", details: nil))
         return
       }
-      if call.method == "setExtraHeaders" {
-        offMain(result) { [mgr] in mgr.setExtraHeaders(map) }
-      } else {
-        offMain(result) { [mgr] in mgr.setExtraBodyFields(map) }
-      }
+      // The SDK validates these on the calling thread and queues the change in
+      // call order, so a later start() sees them.
+      Self.complete(
+        result,
+        call.method == "setExtraHeaders"
+          ? mgr.setExtraHeaders(map) : mgr.setExtraBodyFields(map))
     case "start":
       mgr.start(args.string("polyline"))
       started = true
@@ -222,13 +232,23 @@ public class MapzoneNavSpeedAlertPlugin: NSObject, FlutterPlugin {
     }
   }
 
-  /// Runs `work` on `blockingCalls` and completes `result` on the main thread.
-  private func offMain(_ result: @escaping FlutterResult, _ work: @escaping () -> Any?) {
-    blockingCalls.async {
-      let value = work()
-      DispatchQueue.main.async { result(value) }
+  /// Completes `result` from a native setter's return value: `nil` means the
+  /// value was applied; otherwise it is the reason it was rejected and nothing
+  /// changed.
+  private static func complete(_ result: FlutterResult, _ rejection: String?) {
+    if let rejection {
+      result(FlutterError(code: invalidConfiguration, message: rejection, details: nil))
+    } else {
+      result(nil)
     }
   }
+
+  private static let invalidConfiguration = "INVALID_CONFIGURATION"
+}
+
+/// Channel payload of a `ResultEvent`.
+private func resultMap(_ success: Bool, _ code: Int, _ message: String) -> [String: Any] {
+  ["success": success, "errorCode": code, "errorMessage": message]
 }
 
 /// Event-channel handler that forwards payloads on the main thread while Dart is

@@ -6,10 +6,10 @@ PODS:
   - geolocator_apple (1.2.0):
     - Flutter
     - FlutterMacOS
-  - mapzone_nav_speed_alert (1.0.2):
+  - mapzone_nav_speed_alert (2.0.0):
     - Flutter
-    - MapZoneAlertView (= 1.0.2)
-  - MapZoneAlertView (1.0.2)
+    - MapZoneAlertView (= 2.0.1)
+  - MapZoneAlertView (2.0.1)
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -76,8 +76,8 @@ SPEC CHECKSUMS:
   audioplayers_darwin: 835ced6edd4c9fc8ebb0a7cc9e294a91d99917d5
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
-  mapzone_nav_speed_alert: 5745ebd91e1d345552f47f3b6270cb034db11dbd
-  MapZoneAlertView: be0ebd7dd915933cab8f8b20f3c1deadc807cbc1
+  mapzone_nav_speed_alert: c0923315bc1d1c43c74d6f49a6c503e6ee8f5c57
+  MapZoneAlertView: 4d0411df04085b3d3de382dc5a504ba4f78f2fec
   path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
   permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
   VietMap: 12d51550ae540231b40cec59516002213bb46dcc

@@ -11,13 +11,30 @@ void main() {
   final calls = <MethodCall>[];
   final alert = NavSpeedAlert.instance;
 
+  const config = AlertViewConfig(
+    baseUrl: 'https://example.test',
+    apiKeyId: 'id',
+    apiKey: 'key',
+    identity: '+84901234567',
+    vehicleType: AlertVehicleType.truck,
+    weightTons: 15,
+    maxSnapMeters: 25,
+  );
+
   setUp(() {
     calls.clear();
     messenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       return switch (call.method) {
-        'setExtraHeaders' => 'reserved key: Content-Type',
-        'setExtraBodyFields' => null,
+        'setExtraHeaders' => throw PlatformException(
+          code: 'INVALID_CONFIGURATION',
+          message: 'reserved key: Content-Type',
+        ),
+        'logout' => {
+          'success': false,
+          'errorCode': AlertViewError.networkFailed,
+          'errorMessage': 'Could not reach the server',
+        },
         _ => null,
       };
     });
@@ -25,40 +42,122 @@ void main() {
 
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
-  test('configure sends every field and rejects a bad vehicle type', () async {
-    const config = AlertViewConfig(
-      baseUrl: 'https://example.test',
-      apiKeyId: 'id',
-      apiKey: 'key',
-      vehicleId: 'car-1',
-      vehicleType: 1,
-      maxSnapMeters: 25,
+  Matcher platformError(String code) =>
+      throwsA(isA<PlatformException>().having((e) => e.code, 'code', code));
+
+  test('configure sends every field with metadata as JSON text', () async {
+    await alert.configure(
+      const AlertViewConfig(
+        baseUrl: 'https://example.test',
+        apiKeyId: 'id',
+        apiKey: 'key',
+        identity: '+84901234567',
+        vehicleType: AlertVehicleType.truck,
+        seats: 2,
+        weightTons: 15,
+        maxSnapMeters: 25,
+        metadata: {'vehicleId': '29A-12345', 'axles': 3},
+      ),
     );
-    await alert.configure(config);
     expect(calls.single.method, 'configure');
     expect(calls.single.arguments, {
       'baseUrl': 'https://example.test',
       'apiKeyId': 'id',
       'apiKey': 'key',
-      'vehicleId': 'car-1',
-      'vehicleType': 1,
-      'seats': 0,
-      'weights': 0.0,
+      'identity': '+84901234567',
+      'vehicleType': 5,
+      'seats': 2,
+      'weightTons': 15.0,
       'maxSnapMeters': 25.0,
+      'metadata': '{"vehicleId":"29A-12345","axles":3}',
     });
+  });
 
-    expect(
-      () => alert.configure(
+  test('configure without metadata sends null', () async {
+    await alert.configure(config);
+    expect((calls.single.arguments as Map)['metadata'], isNull);
+  });
+
+  test('configure rejects a non-https baseUrl before reaching native', () async {
+    await expectLater(
+      alert.configure(
         const AlertViewConfig(
-          baseUrl: '',
-          apiKeyId: '',
-          apiKey: '',
-          vehicleId: '',
-          vehicleType: 10,
+          baseUrl: 'http://example.test',
+          apiKeyId: 'id',
+          apiKey: 'key',
+          identity: 'u',
+          vehicleType: AlertVehicleType.car,
         ),
       ),
-      throwsArgumentError,
+      platformError('CONFIGURE_FAILED'),
     );
+    await expectLater(
+      alert.configure(
+        const AlertViewConfig(
+          baseUrl: 'https://',
+          apiKeyId: 'id',
+          apiKey: 'key',
+          identity: 'u',
+          vehicleType: AlertVehicleType.car,
+        ),
+      ),
+      platformError('CONFIGURE_FAILED'),
+    );
+    expect(calls, isEmpty);
+
+    // Same rule as the SDK: the scheme is case-insensitive.
+    await alert.configure(
+      const AlertViewConfig(
+        baseUrl: 'HTTPS://example.test',
+        apiKeyId: 'id',
+        apiKey: 'key',
+        identity: 'u',
+        vehicleType: AlertVehicleType.car,
+      ),
+    );
+    expect(calls.single.method, 'configure');
+  });
+
+  test('configure rejects metadata jsonEncode cannot encode', () async {
+    await expectLater(
+      alert.configure(
+        AlertViewConfig(
+          baseUrl: 'https://example.test',
+          apiKeyId: 'id',
+          apiKey: 'key',
+          identity: 'u',
+          vehicleType: AlertVehicleType.car,
+          metadata: {'when': DateTime(2026)},
+        ),
+      ),
+      platformError('INVALID_CONFIGURATION'),
+    );
+    expect(calls, isEmpty);
+  });
+
+  test('configure forwards a native rejection', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(
+        code: 'INVALID_CONFIGURATION',
+        message: 'identity must not be empty',
+      );
+    });
+    await expectLater(
+      alert.configure(config),
+      throwsA(
+        isA<PlatformException>()
+            .having((e) => e.code, 'code', 'INVALID_CONFIGURATION')
+            .having((e) => e.message, 'message', 'identity must not be empty'),
+      ),
+    );
+  });
+
+  test('logout returns the native result', () async {
+    final r = await alert.logout();
+    expect(calls.single.method, 'logout');
+    expect(r.success, isFalse);
+    expect(r.errorCode, AlertViewError.networkFailed);
+    expect(r.errorMessage, 'Could not reach the server');
   });
 
   test('route and location commands', () async {
@@ -100,14 +199,17 @@ void main() {
     expect(calls[2].arguments, {'speed': 1.5});
   });
 
-  test('request extras return the native error message or null', () async {
-    expect(
-      await alert.setExtraHeaders({'Content-Type': 'x'}),
-      'reserved key: Content-Type',
+  test('request extras complete, or throw the native rejection', () async {
+    await expectLater(
+      alert.setExtraHeaders({'Content-Type': 'x'}),
+      platformError('INVALID_CONFIGURATION'),
     );
-    expect(await alert.setExtraBodyFields({'tripId': '42'}), isNull);
+    await alert.setExtraBodyFields({'tripId': '42'});
     expect(calls[0].arguments, {
       'map': {'Content-Type': 'x'},
+    });
+    expect(calls[1].arguments, {
+      'map': {'tripId': '42'},
     });
     await alert.setSegmentUrl('');
     expect(calls.last.arguments, {'url': ''});
@@ -126,6 +228,6 @@ void main() {
     );
     final events = await alert.onResult.toList();
     expect(events.single.success, isTrue);
-    expect(events.single.errorCode, 0);
+    expect(events.single.errorCode, AlertViewError.ok);
   });
 }

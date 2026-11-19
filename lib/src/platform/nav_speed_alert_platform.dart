@@ -31,14 +31,17 @@ abstract class NavSpeedAlertPlatform extends PlatformInterface {
   /// See `NavSpeedAlert.configure`.
   Future<void> configure(AlertViewConfig config);
 
+  /// See `NavSpeedAlert.logout`.
+  Future<ResultEvent> logout();
+
   /// See `NavSpeedAlert.setSegmentUrl`.
   Future<void> setSegmentUrl(String url);
 
   /// See `NavSpeedAlert.setExtraHeaders`.
-  Future<String?> setExtraHeaders(Map<String, String> headers);
+  Future<void> setExtraHeaders(Map<String, String> headers);
 
   /// See `NavSpeedAlert.setExtraBodyFields`.
-  Future<String?> setExtraBodyFields(Map<String, String> fields);
+  Future<void> setExtraBodyFields(Map<String, String> fields);
 
   /// See `NavSpeedAlert.start`.
   Future<void> start(String routePolyline);

@@ -4,7 +4,9 @@
 /// Entry point: [NavSpeedAlert.instance].
 library;
 
+export 'src/models/alert_vehicle_type.dart';
 export 'src/models/alert_view_config.dart';
+export 'src/models/alert_view_error.dart';
 export 'src/models/location_fix.dart';
 export 'src/models/reroute_event.dart';
 export 'src/models/restriction_event.dart';

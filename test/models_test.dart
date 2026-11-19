@@ -95,16 +95,26 @@ void main() {
 
     final r = ResultEvent.fromMap({
       'success': false,
-      'errorCode': 1003,
-      'errorMessage': 'bad polyline',
+      'errorCode': 2006,
+      'errorMessage': 'in use on another device',
     });
     expect(r.success, isFalse);
-    expect(r.errorCode, 1003);
-    expect(r.errorMessage, 'bad polyline');
+    expect(r.errorCode, AlertViewError.sessionMoved);
+    expect(r.errorMessage, 'in use on another device');
 
     final rr = RerouteEvent.fromMap({'lat': 21.0, 'lng': 105});
     expect(rr.lat, 21.0);
     expect(rr.lng, 105.0);
+  });
+
+  test('AlertVehicleType uses the service codes', () {
+    expect(
+      {for (final t in AlertVehicleType.values) t.name: t.value},
+      {'car': 1, 'taxi': 2, 'bus': 3, 'coach': 4, 'truck': 5, 'motorcycle': 7},
+    );
+    expect(AlertVehicleType.fromValue(5), AlertVehicleType.truck);
+    expect(AlertVehicleType.fromValue(6), isNull);
+    expect(AlertVehicleType.fromValue(9), isNull);
   });
 
   test('LocationFix defaults the timestamp to now', () {

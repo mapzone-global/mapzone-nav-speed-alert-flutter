@@ -1,6 +1,6 @@
 name: mapzone_nav_speed_alert
 description: "Speed-limit, camera, toll and road-restriction alerts with voice along a given route, for Flutter navigation apps on Android and iOS."
-version: 1.0.0
+version: 2.0.0
 homepage: https://map.zone
 repository: https://github.com/mapzone-global/mapzone-nav-speed-alert-flutter
 issue_tracker: https://github.com/mapzone-global/mapzone-nav-speed-alert-flutter/issues

@@ -3,10 +3,13 @@ import 'package:mapzone_nav_speed_alert/mapzone_nav_speed_alert.dart';
 import 'models/vehicle_profile.dart';
 
 class Env {
-  static const String baseUrl = "https://driving.map.zone";
+  /// Gateway address issued by MapZone; https:// only.
+  static const String baseUrl = 'https://your-gateway-from-mapzone';
   static const String apiKeyId = 'your_speed_alert_key_id';
   static const String apiKey = 'your_speed_alert_key';
-  static const String vehicleId = 'your_vehicle_id';
+  /// Who is signed in when the app starts (phone number, driver code, …).
+  /// Editable from the settings dialog for the current run.
+  static const String identity = 'your_signed_in_user';
 
   /// VietMap key for map display, routing and search.
   static const String vietmapApiKey = 'your_vietmap_key';
@@ -19,13 +22,16 @@ class Env {
 
   static const VehicleProfile defaultVehicle = VehicleProfile();
 
-  static AlertViewConfig configFor(VehicleProfile v) => AlertViewConfig(
+  static AlertViewConfig configFor(
+    VehicleProfile v, {
+    required String identity,
+  }) => AlertViewConfig(
     baseUrl: baseUrl,
     apiKeyId: apiKeyId,
     apiKey: apiKey,
-    vehicleId: vehicleId,
-    vehicleType: v.type.code,
+    identity: identity,
+    vehicleType: v.type.sdkType,
     seats: v.seats,
-    weights: v.weightKg / 1000,
+    weightTons: v.weightTons,
   );
 }

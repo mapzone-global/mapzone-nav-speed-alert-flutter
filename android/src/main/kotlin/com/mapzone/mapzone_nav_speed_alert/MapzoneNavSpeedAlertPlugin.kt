@@ -3,6 +3,7 @@ package com.mapzone.mapzone_nav_speed_alert
 import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
+import com.vietmap.alert_view_sdk.AlertVehicleType
 import com.vietmap.alert_view_sdk.AlertViewManager
 import com.vietmap.alert_view_sdk.VoiceAlertType
 import com.vietmap.alert_view_sdk.VoiceCallback
@@ -41,15 +42,10 @@ class MapzoneNavSpeedAlertPlugin : FlutterPlugin, MethodCallHandler {
     @Volatile
     private var started = false
 
-    // Calls that wait for the engine queue (a segment fetch may be in flight) must
-    // not block the platform thread.
-    private lateinit var blockingCalls: ExecutorService
-
     // Sign images are PNG-encoded off the main thread; one thread keeps tick order.
     private lateinit var encoder: ExecutorService
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        blockingCalls = Executors.newSingleThreadExecutor()
         encoder = Executors.newSingleThreadExecutor()
         val messenger = binding.binaryMessenger
         methodChannel = MethodChannel(messenger, CHANNEL).also { it.setMethodCallHandler(this) }
@@ -110,9 +106,7 @@ class MapzoneNavSpeedAlertPlugin : FlutterPlugin, MethodCallHandler {
         }, { mgr.setVoiceCallback(null) })
 
         stream(messenger, "result", { emit ->
-            mgr.setResultCallback { ok, code, msg ->
-                emit(mapOf("success" to ok, "errorCode" to code, "errorMessage" to (msg ?: "")))
-            }
+            mgr.setResultCallback { ok, code, msg -> emit(resultMap(ok, code, msg)) }
         }, { mgr.setResultCallback(null) })
 
         stream(messenger, "reroute", { emit ->
@@ -134,7 +128,6 @@ class MapzoneNavSpeedAlertPlugin : FlutterPlugin, MethodCallHandler {
             mgr.reset()
             started = false
         }
-        blockingCalls.shutdown()
         encoder.shutdown()
     }
 
@@ -142,33 +135,43 @@ class MapzoneNavSpeedAlertPlugin : FlutterPlugin, MethodCallHandler {
         try {
             when (call.method) {
                 "configure" -> {
-                    mgr.configure(
+                    // Unknown codes never reach the SDK, whose enum has no value
+                    // for them.
+                    val code = call.arg<Number>("vehicleType").toInt()
+                    val vehicleType = AlertVehicleType.fromValue(code)
+                    if (vehicleType == null) {
+                        result.error(INVALID_CONFIGURATION, "Unsupported vehicle type code $code.", null)
+                        return
+                    }
+                    // Identity and metadata are personal data: never logged.
+                    val rejection = mgr.configure(
                         call.arg<String>("baseUrl"),
                         call.arg<String>("apiKeyId"),
                         call.arg<String>("apiKey"),
-                        call.arg<String>("vehicleId"),
-                        call.arg<Number>("vehicleType").toInt(),
+                        call.arg<String>("identity"),
+                        vehicleType,
                         call.arg<Number>("seats").toInt(),
-                        call.arg<Number>("weights").toDouble(),
+                        call.arg<Number>("weightTons").toDouble(),
                         call.arg<Number>("maxSnapMeters").toDouble(),
+                        call.argument<String>("metadata"),
                     )
-                    result.success(null)
+                    // A rejection applied nothing: the previous configuration
+                    // stays in effect.
+                    complete(result, rejection)
                 }
 
-                "setSegmentUrl" -> {
-                    mgr.setSegmentUrl(call.arg<String>("url"))
-                    result.success(null)
+                "logout" -> {
+                    // The SDK reports on the main thread.
+                    mgr.logout { ok, code, msg -> result.success(resultMap(ok, code, msg)) }
                 }
 
-                "setExtraHeaders" -> {
-                    val map = call.stringMap()
-                    offMain(result) { mgr.setExtraHeaders(map) }
-                }
+                "setSegmentUrl" -> complete(result, mgr.setSegmentUrl(call.arg<String>("url")))
 
-                "setExtraBodyFields" -> {
-                    val map = call.stringMap()
-                    offMain(result) { mgr.setExtraBodyFields(map) }
-                }
+                // The SDK validates these on the calling thread and queues the
+                // change in call order, so a later start() sees them.
+                "setExtraHeaders" -> complete(result, mgr.setExtraHeaders(call.stringMap()))
+
+                "setExtraBodyFields" -> complete(result, mgr.setExtraBodyFields(call.stringMap()))
 
                 "start" -> {
                     mgr.start(call.arg<String>("polyline"))
@@ -221,17 +224,21 @@ class MapzoneNavSpeedAlertPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    /** Runs [work] on [blockingCalls] and completes [result] on the main thread. */
-    private fun offMain(result: Result, work: () -> Any?) {
-        blockingCalls.execute {
-            try {
-                val value = work()
-                main.post { result.success(value) }
-            } catch (e: Exception) {
-                main.post { result.error("NATIVE_ERROR", e.message, null) }
-            }
+    /**
+     * Completes [result] from a native setter's return value: `null` means the
+     * value was applied; otherwise it is the reason it was rejected and nothing
+     * changed.
+     */
+    private fun complete(result: Result, rejection: String?) {
+        if (rejection == null) {
+            result.success(null)
+        } else {
+            result.error(INVALID_CONFIGURATION, rejection, null)
         }
     }
+
+    private fun resultMap(success: Boolean, errorCode: Int, errorMessage: String?) =
+        mapOf("success" to success, "errorCode" to errorCode, "errorMessage" to (errorMessage ?: ""))
 
     /**
      * Registers an event channel whose native callback is installed by [open] on
@@ -264,6 +271,7 @@ class MapzoneNavSpeedAlertPlugin : FlutterPlugin, MethodCallHandler {
 
     private companion object {
         const val CHANNEL = "mapzone_nav_speed_alert"
+        const val INVALID_CONFIGURATION = "INVALID_CONFIGURATION"
     }
 }
 

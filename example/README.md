@@ -8,14 +8,15 @@ and restriction signs and plays voice alerts.
 
 You need two sets of credentials:
 
-- **MapZone alert key** (`apiKeyId`, `apiKey`, `vehicleId`) registered for the
+- **MapZone alert key** (`apiKeyId`, `apiKey`) registered for the
   application id you will run — contact [MapZone](https://zalo.me/3189066936017422854).
+  With a trial key, use one of the key's sample identities as `identity`.
 - **VietMap API key** for the map, routing and search.
 
 Credentials are never committed. Provide them locally:
 
 1. **Dart** — copy `lib/env.example.dart` to `lib/env.dart` (git-ignored) and
-   fill in `baseUrl`, `apiKeyId`, `apiKey`, `vehicleId` and `vietmapApiKey`.
+   fill in `baseUrl`, `apiKeyId`, `apiKey`, `identity` and `vietmapApiKey`.
 
    ```sh
    cp lib/env.example.dart lib/env.dart
